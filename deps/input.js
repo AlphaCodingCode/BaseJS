@@ -51,10 +51,10 @@ var keyX = 88;
 var keyY = 89;
 var keyZ = 90;
 
-function ekey_down(event) {
-	keys[event.keyCode] = true;
+function keyPressed() {
+	keys[keyCode] = true;
 }
 
-function ekey_up(event) {
-	delete keys[event.keyCode];
+function keyReleased() {
+	delete keys[keyCode];
 }
