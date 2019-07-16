@@ -58,3 +58,7 @@ function keyPressed() {
 function keyReleased() {
 	delete keys[keyCode];
 }
+
+function randomColor() {
+	return color(random(0, 255), random(0, 255), random(0, 255));
+}
