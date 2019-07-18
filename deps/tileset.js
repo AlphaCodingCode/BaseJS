@@ -92,8 +92,6 @@ class Tileset {
             return;
         for (let y = 0; y < round(height / this.tileH); y++) {
             for (let x = 0; x < round(width / this.tileW); x++) {
-                console.log(y, x);
-                console.log(this.map);
                 this.drawTile(this.map[y][x], x * this.tileW, y * this.tileH);
             }
         }
