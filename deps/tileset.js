@@ -1,3 +1,19 @@
+class MapTile {
+    constructor(name) {
+        this.name = name;
+        this.neighbours = [];
+        this.f = 0;
+        this.g = 0;
+        this.h = 0;
+    }
+
+    resetPathCost() {
+        this.f = 0;
+        this.g = 0;
+        this.h = 0;
+    }
+}
+
 class Tileset {
     constructor (img, tileW, tileH, names) {
         this.img = loadImage(img);
@@ -8,6 +24,7 @@ class Tileset {
         this.selected = names[0];
         this.hide = true;
         this.map = [];
+        this.blockedList = [];
 
         // create tile "blocks" for tileCount tiles
         for (let i = 0; i < names.length; i++) {
@@ -25,7 +42,17 @@ class Tileset {
     }
 
     setMap(pmap) {
-        this.map = pmap;
+        this.map = [];
+        console.log(pmap.length);
+        console.log(pmap[0].length);
+        for (let i = 0; i < pmap.length; i++) {
+            let row = [];
+            for (let j = 0; j < pmap[0].length; j++) {
+                console.log(i, j);
+                row.push(new MapTile(pmap[i][j]));
+            }
+            this.map.push(row);
+        }
     }
 
 
@@ -35,7 +62,7 @@ class Tileset {
         for (let y = 0; y < round(height / this.tileH); y++) {
             let row = [];
             for (let x = 0; x < round(width / this.tileW); x++) {
-                row.push(this.selected);
+                row.push(new MapTile(this.selected));
             }
             this.map.push(row);
         }
@@ -47,7 +74,7 @@ class Tileset {
         if (this.hide)
             return;
         // clicking hide on the toolbar should hide the toolbar
-        let r = 3;
+        let r = 0;
         if (dist(mouseX, mouseY, width - this.tileW + (this.tileW / 2), height - (this.tileH / 2)) < this.tileW / 2) {
             this.hide = true;
             this.exportMapToText();
@@ -76,7 +103,7 @@ class Tileset {
         // draw the tile on the grid.
         let x = round(mouseX / this.tileW);
         let y = round(mouseY / this.tileH);
-        this.map[y][x] = this.selected;
+        this.map[y][x].name = this.selected;
     }
 
     /* Render map, and the toolbar if it's hidden */
@@ -92,12 +119,13 @@ class Tileset {
             return;
         for (let y = 0; y < round(height / this.tileH); y++) {
             for (let x = 0; x < round(width / this.tileW); x++) {
-                this.drawTile(this.map[y][x], x * this.tileW, y * this.tileH);
+                this.drawTile(this.map[y][x].name, x * this.tileW, y * this.tileH);
             }
         }
         // display toolbar if it's not in hidden mode
         if (this.hide)
             return;
+        stroke(0, 0, 0);
         fill(0);
         rect(0, height - this.tileH, width, this.tileH);
         for (let i = 0; i < this.tiles.length; i++) {
@@ -110,6 +138,23 @@ class Tileset {
         textAlign(CENTER);
         textSize(this.tileW / 3);
         text("hide", width - this.tileW + (this.tileW / 2), height - (this.tileH / 2));
+        // draw grid lines
+        for (let i = 0; i < round(height / this.tileH); i++) {
+            line(0, i * this.tileH, width, i * this.tileH);
+        }
+        for (let i = 0; i < round(width / this.tileW); i++) {
+            line(i * this.tileW, 0, i * this.tileW, height - this.tileH);
+        }
+        noFill();
+        stroke(255, 0, 0);
+        strokeWeight(2);
+        try {
+            rect(round(mouseX / this.tileW) * this.tileW, round(mouseY / this.tileH) * this.tileH, this.tileW, this.tileH);
+        } catch (err) {
+            console.log("mouse out of canvas. - indicator unshown.");
+        }
+        stroke(0);
+        strokeWeight(1);
     }
 
     exportMapToText() {
@@ -118,9 +163,9 @@ class Tileset {
             strDisp += "[";
             for (let x = 0; x < round(width / this.tileW); x++) {
                 if ((x + 1) == round(width / this.tileW))
-                    strDisp += '"' + this.map[y][x] + '"';
+                    strDisp += '"' + this.map[y][x].name + '"';
                 else
-                    strDisp += '"' + this.map[y][x] + '"' + ", ";
+                    strDisp += '"' + this.map[y][x].name + '"' + ", ";
             }
             strDisp += "],\n";
         }
@@ -133,4 +178,21 @@ class Tileset {
             saveAs(blob, "tilemap.js");
         }
     }
+
+    // create a list of blocked tile IDs that entities can't move through
+    initBlockedList(blocked) {
+        this.blockedList = blocked;
+    }
+
+    initNeighbours() {
+
+    }
+
+    // A* path finding algorithm
+    shortestPath() {
+
+    }
+
+
+
 }
