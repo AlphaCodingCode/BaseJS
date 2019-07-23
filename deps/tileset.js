@@ -1,7 +1,10 @@
 class MapTile {
-    constructor(name) {
+    constructor(name, x, y) {
         this.name = name;
         this.neighbours = [];
+        this.parent = null;
+        this.x = x;
+        this.y = y;
         this.f = 0;
         this.g = 0;
         this.h = 0;
@@ -28,7 +31,7 @@ class Tileset {
 
         // create tile "blocks" for tileCount tiles
         for (let i = 0; i < names.length; i++) {
-            this.tiles.push({name : names[i], xOff: 0, yOff: i * tileH});
+            this.tiles.push({name : names[i] + "", xOff: 0, yOff: i * tileH});
         }
     }
 
@@ -43,16 +46,14 @@ class Tileset {
 
     setMap(pmap) {
         this.map = [];
-        console.log(pmap.length);
-        console.log(pmap[0].length);
         for (let i = 0; i < pmap.length; i++) {
             let row = [];
             for (let j = 0; j < pmap[0].length; j++) {
-                console.log(i, j);
-                row.push(new MapTile(pmap[i][j]));
+                row.push(new MapTile(pmap[i][j], j * this.tileW, i * this.tileH));
             }
             this.map.push(row);
         }
+        this.initNeighbours();
     }
 
 
@@ -62,10 +63,11 @@ class Tileset {
         for (let y = 0; y < round(height / this.tileH); y++) {
             let row = [];
             for (let x = 0; x < round(width / this.tileW); x++) {
-                row.push(new MapTile(this.selected));
+                row.push(new MapTile(this.selected, x * this.tileW, y * this.tileH));
             }
             this.map.push(row);
         }
+        this.initNeighbours();
         this.hide = false;
     }
 
@@ -184,15 +186,131 @@ class Tileset {
         this.blockedList = blocked;
     }
 
-    initNeighbours() {
+    initMoveableList(moveableList) {
+        let blocked = [];
+        // let moveable = moveableList.sort();
+        // let this.tiles = this.tiles.sort();
+        for (let i = 0; i < this.tiles.length; i++) {
+            let contained = false;
+            for (let j = 0; j < moveableList.length; j++) {
+                if ((this.tiles[i].name + "") == (moveableList[j] + "")) {
+                    // if moveableList doesn't contain the element this.tiles[0], skip
+                    contained = true;
+                    break;
+                }
+            }
+            if (!contained)
+                blocked.push(this.tiles[i].name + "");
+        }
+        this.blockedList = blocked;
+    }
 
+    initNeighbours() {
+        for (let y = 0; y < this.map.length; y++) {
+            for (let x = 0; x < this.map[0].length; x++) {
+                if (x > 0) {
+                    // add left neighbour
+                    this.map[y][x].neighbours.push(this.map[y][x - 1]);
+                }
+                if (x < (this.map[0].length - 1)) {
+                    // add right neighbour
+                    this.map[y][x].neighbours.push(this.map[y][x + 1]);
+                }
+                if (y > 0) {
+                    // add neighbour above
+                    this.map[y][x].neighbours.push(this.map[y - 1][x]);
+                }
+                if (y < this.map.length - 1) {
+                    // add neighbour below
+                    this.map[y][x].neighbours.push(this.map[y + 1][x]);
+                }
+            }
+        }
     }
 
     // A* path finding algorithm
-    shortestPath() {
+    shortestPath(start, goal) {
+        let openSet = [];
+        let closedSet = [];
+        openSet.push(start);
 
+        // clear path finding data
+        for (let y = 0; y < round(height / this.tileH); y++) {
+            for (let x = 0; x < round(width / this.tileW); x++) {
+                this.map[y][x].f = 0;
+                this.map[y][x].g = 0;
+                this.map[y][x].h = 0;
+                this.map[y][x].parent = null;
+            }
+        }
+
+        while (openSet.length > 0) {
+            // get lowest cost node in open set
+            let currentNode = openSet[0];
+            for (let i = 0; i < openSet.length; i++) {
+                if (openSet[i].f < currentNode.f)
+                    currentNode = openSet[i];
+            }
+
+            // if end has been reached, then finish
+            if (currentNode.x == goal.x && currentNode.y == goal.y) {
+                let path = []
+                while (currentNode.parent != null) {
+                    path.push(currentNode);
+                    currentNode.name = "7";
+                    currentNode = currentNode.parent;
+                }
+                return path.reverse();
+            }
+
+            // remove currentNode from openset, and put into closed set
+            closedSet.push(currentNode);
+            for (let i = openSet.length - 1; i >= 0;  i--) {
+                if (openSet[i] === currentNode) {
+                    openSet.splice(i, 1);
+                }
+            }
+
+            // evaluate currentNode's neighbours
+            for (let i = 0; i < currentNode.neighbours.length; i++) {
+                let neighbour = currentNode.neighbours[i];
+                if (!this.moveable(neighbour.x / this.tileW, neighbour.y / this.tileH)) {
+                    continue;
+                }
+                if (closedSet.includes(neighbour))
+                    continue;
+                //  valid neighbour found..
+                let gScore = currentNode.g + 1;
+                let bestG = false;
+                if (!openSet.includes(neighbour)) {
+                    // first time at neighbour, so it's the best
+                    bestG = true;
+                    neighbour.h = this.heuristic(neighbour.x, neighbour.y, goal.x, goal.y);
+                    openSet.push(neighbour);
+                } else if (gScore < neighbour.g) {
+                    // worse path to it exists in openset..
+                    bestG = true;
+                    openSet.splice(openSet.indexOf(neighbour), 1);
+                }
+
+                if (bestG) {
+                    neighbour.parent = currentNode;
+                    neighbour.g = gScore;
+                    neighbour.f = neighbour.h + neighbour.g;
+                }
+            }
+        }
+        // no path found
+        return [];
     }
 
+    heuristic(x1, y1, x2, y2) {
+        return Math.abs((x1 * this.tileW) - (x2 * this.tileW)) +
+        Math.abs((y2 * this.tileH) - (y1 * this.tileH));
+    }
 
+    moveable(x, y) {
+        return !this.blockedList.includes(this.map[y][x].name);
+    }
 
 }
