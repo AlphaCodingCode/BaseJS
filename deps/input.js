@@ -62,3 +62,10 @@ function keyReleased() {
 function randomColor() {
 	return color(random(0, 255), random(0, 255), random(0, 255));
 }
+
+function mouseOnRect(x, y, w, h) {
+    if ((mouseX > x) && (mouseX < x + w) && (mouseY > y) && (mouseY < y + h)) {
+        return true;
+    }
+    return false;
+}
