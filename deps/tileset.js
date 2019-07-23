@@ -257,7 +257,6 @@ class Tileset {
                 let path = []
                 while (currentNode.parent != null) {
                     path.push(currentNode);
-                    currentNode.name = "7";
                     currentNode = currentNode.parent;
                 }
                 return path.reverse();
