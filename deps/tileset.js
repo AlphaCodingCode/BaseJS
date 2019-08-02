@@ -230,6 +230,10 @@ class Tileset {
 
     // A* path finding algorithm
     shortestPath(start, goal) {
+        // start isn't moveable to
+        if (!this.moveable(start.x / this.tileW, start.y / this.tileH)) {
+            return [];
+        }
         let openSet = [];
         let closedSet = [];
         openSet.push(start);
